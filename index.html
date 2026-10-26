@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>धनखड़ सीएससी सेंटर ढाकला - Thermal Receipt Generator</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (Rajdhani, Hind & Inter) -->
+    <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Hind:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- PDF.js Library for PDF Parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
+    <style>
+        body {
+            font-family: 'Hind', 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        /* Thermal Receipt Monospace Font */
+        .thermal-font {
+            font-family: 'Courier Prime', monospace;
+        }
+        
+        /* 80mm Thermal Receipt Box Container (~300px width on screen) */
+        .thermal-receipt-box {
+            width: 300px;
+            margin: 0 auto;
+            background: #ffffff;
+            color: #000000;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Dashed Line Divider for Thermal Receipts */
+        .thermal-divider {
+            border-top: 1px dashed #000000;
+            margin: 4px 0;
+        }
+
+        /* EXACT 5MM TOP-LEFT PRINTING CSS FOR 80MM POS THERMAL PRINTERS */
+        @media print {
+            @page {
+                size: 80mm auto;
+                margin: 5mm 0 0 5mm; /* Exact 5mm Top and Left Margin */
+            }
+            
+            html, body {
+                background: #ffffff !important;
+                color: #000000 !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 72mm !important;
+                display: block !important;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            .print-only-container {
+                position: absolute !important;
+                top: 5mm !important;
+                left: 5mm !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 70mm !important;
+                display: block !important;
+            }
+
+            .thermal-receipt-box {
+                position: absolute !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 70mm !important;
+                max-width: 70mm !important;
+                box-shadow: none !important;
+                border: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                float: left !important;
+                text-align: left !important;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen text-gray-800 flex flex-col">
+
+    <!-- HEADER / NAVIGATION (No Print) -->
+    <header class="no-print bg-gradient-to-r from-blue-900 via-indigo-800 to-blue-900 text-white shadow-lg border-b-4 border-orange-500">
+        <div class="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                
+                <!-- CSC Center Branding -->
+                <div class="flex items-center space-x-3 text-center md:text-left">
+                    <div class="w-14 h-14 bg-white rounded-full p-1 shadow-md flex items-center justify-center shrink-0">
+                        <div class="w-full h-full bg-orange-500 rounded-full flex items-center justify-center font-bold text-xl text-white border-2 border-blue-900">
+                            CSC
+                        </div>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+                            धनखड़ सीएससी सेंटर ढाकला
+                        </h1>
+                        <p class="text-xs sm:text-sm text-blue-100 flex flex-wrap gap-2 justify-center md:justify-start mt-1">
+                            <span><i class="fa-solid font-bold text-orange-400 fa-user-gear mr-1"></i>संचालक: <strong>आशीष धनखड़</strong></span>
+                            <span>|</span>
+                            <span><i class="fa-solid text-orange-400 fa-id-card mr-1"></i>सीएससी ID: <strong>316521760018</strong></span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Contact & Quick Actions -->
+                <div class="flex flex-wrap items-center justify-center gap-2 text-sm">
+                    <a href="tel:9996036806" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition shadow-sm font-medium">
+                        <i class="fa-solid fa-phone"></i> 9996036806
+                    </a>
+                    <a href="https://wa.me/919996036806" target="_blank" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition shadow-sm font-medium">
+                        <i class="fa-brands fa-whatsapp text-lg"></i> व्हाट्सऐप
+                    </a>
+                    <a href="mailto:ashishdhankar704@gmail.com" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition shadow-sm font-medium">
+                        <i class="fa-solid fa-envelope"></i> जीमेल
+                    </a>
+                </div>
+
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN APP CONTENT CONTAINER -->
+    <main class="flex-grow max-w-7xl w-full mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- LEFT COLUMN: PDF Uploader & Extracted Data Form (No Print) -->
+        <section class="no-print lg:col-span-7 space-y-6">
+
+            <!-- PDF Upload Card -->
+            <div class="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-gray-200">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                        <i class="fa-solid fa-file-pdf text-red-500 text-xl"></i>
+                        रसीद अपलोड करें (Digipay / CSC PDF)
+                    </h2>
+                    <span class="text-xs bg-emerald-100 text-emerald-800 font-semibold px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                        <i class="fa-solid fa-location-arrow"></i> 5mm Left-Top Print
+                    </span>
+                </div>
+
+                <!-- File Drop Area -->
+                <div id="drop-area" class="border-2 border-dashed border-indigo-300 hover:border-indigo-500 rounded-xl p-6 text-center bg-indigo-50/50 hover:bg-indigo-50 transition cursor-pointer relative">
+                    <input type="file" id="pdf-input" accept="application/pdf" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="handleFileUpload(event)">
+                    <div class="space-y-2">
+                        <div class="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto text-xl">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                        </div>
+                        <p class="text-sm font-medium text-gray-700">PDF रसीद यहाँ ड्रॉप करें या ब्राउज़ करें</p>
+                        <p class="text-xs text-gray-500">DigiPay, CSC Portal, AePS Payment Receipts supported</p>
+                    </div>
+                </div>
+
+                <!-- Status & Preset Quick Test Button -->
+                <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+                    <button onclick="loadSampleData()" class="text-xs bg-orange-500 hover:bg-orange-600 text-white font-medium px-3.5 py-2 rounded-lg flex items-center gap-1.5 transition shadow-sm">
+                        <i class="fa-solid fa-bolt"></i> sample (Digipay ₹5,000) डेटा लोड करें
+                    </button>
+
+                    <div id="status-msg" class="text-xs font-semibold text-gray-500 flex items-center gap-1">
+                        <i class="fa-solid fa-circle-info text-blue-500"></i> PDF अपलोड करें या टेस्ट सैंपल बटन दबाएं
+                    </div>
+                </div>
+            </div>
+
+            <!-- Extracted / Editable Data Form -->
+            <div class="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-gray-200 space-y-4">
+                <div class="flex items-center justify-between border-b pb-3">
+                    <h3 class="text-base font-bold text-gray-800 flex items-center gap-2">
+                        <i class="fa-solid fa-sliders text-indigo-600"></i>
+                        रसीद विवरण (Receipt Details)
+                    </h3>
+                    <button onclick="clearForm()" class="text-xs text-red-600 hover:text-red-800 font-semibold flex items-center gap-1">
+                        <i class="fa-solid fa-trash-can"></i> साफ़ करें
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                    
+                    <!-- Service / Transaction Type -->
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">लेनदेन का प्रकार (Transaction Type)</label>
+                        <input type="text" id="field-type" value="Cash Withdrawal (AEPS)" oninput="updateReceipt()" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+
+                    <!-- Amount -->
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">राशि (Amount - ₹)</label>
+                        <input type="text" id="field-amount" value="₹5,000" oninput="updateReceipt()" class="w-full border border-gray-300 rounded-lg px-3 py-2 font-bold text-emerald-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+
+                    <!-- Transaction Status -->
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">स्थिति (Status)</label>
+                        <select id="field-status" onchange="updateReceipt()" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            <option value="SUCCESS" selected>SUCCESS</option>
+                            <option value="PENDING">PENDING</option>
+                            <option value="FAILED">FAILED</option>
+                        </select>
+                    </div>
+
+                    <!-- Date & Time -->
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">दिनांक और समय (Date & Time)</label>
+                        <input type="text" id="field-date" value="October 26, 2026 12:10:12 PM" oninput="updateReceipt()" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+
+                    <!-- Bank Name -->
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">बैंक का नाम (Bank Name)</label>
+                        <input type="text" id="field-bank" value="Punjab National Bank" oninput="updateReceipt()" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+
+                    <!-- Customer Aadhaar / ID -->
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">ग्राहक ID / आधार (Customer ID)</label>
+                        <input type="text" id="field-customer" value="XXXX XXXX 4569" oninput="updateReceipt()" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+
+                    <!-- RRN / Reference No -->
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">RRN / बैंक संदर्भ संख्या</label>
+                        <input type="text" id="field-rrn" value="629912410935" oninput="updateReceipt()" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+
+                    <!-- Remaining Balance -->
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">शेष राशि (Remaining Balance)</label>
+                        <input type="text" id="field-balance" value="₹662.90" oninput="updateReceipt()" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+
+                    <!-- Transaction ID -->
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">ट्रांजेक्शन ID (Transaction ID)</label>
+                        <input type="text" id="field-txnid" value="CZUCW1792996810289041EOVT3M89410935" oninput="updateReceipt()" class="w-full border border-gray-300 rounded-lg px-3 py-2 font-mono text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+
+                    <!-- Agent Name -->
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">एजेंट / आपपरेटर नाम (Agent Name)</label>
+                        <input type="text" id="field-agent" value="Aman Kumar / आशीष धनखड़" oninput="updateReceipt()" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+
+                    <!-- Agent CSC ID -->
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">CSC Agent ID</label>
+                        <input type="text" id="field-agentid" value="316521760018" oninput="updateReceipt()" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+
+                </div>
+            </div>
+
+        </section>
+
+        <!-- RIGHT COLUMN: 80mm Thermal Printer Live Preview & Print Trigger -->
+        <section class="lg:col-span-5 flex flex-col items-center">
+            
+            <div class="print-only-container w-full sticky top-6">
+                
+                <!-- Action Toolbar (No Print) -->
+                <div class="no-print w-full max-w-[300px] mb-3 flex items-center justify-between gap-2">
+                    <span class="text-xs font-bold text-gray-600 uppercase tracking-wider flex items-center gap-1">
+                        <i class="fa-solid fa-print text-indigo-600"></i> 80mm POS Thermal
+                    </span>
+                    
+                    <div class="flex items-center gap-1.5">
+                        <button onclick="copyReceiptText()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs px-2.5 py-1.5 rounded-lg transition font-semibold" title="कॉपी टेक्स्ट">
+                            <i class="fa-regular fa-copy"></i>
+                        </button>
+                        <button onclick="window.print()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3.5 py-1.5 rounded-lg transition font-bold shadow-md flex items-center gap-1.5">
+                            <i class="fa-solid fa-print"></i> प्रिंट करें (5mm Left)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- THERMAL RECEIPT CONTAINER (Upper Left Aligned in Print Mode) -->
+                <div id="receipt-preview" class="thermal-receipt-box thermal-font p-3 text-xs leading-tight rounded border border-gray-300">
+                    
+                    <!-- Receipt Header -->
+                    <div class="text-center space-y-1">
+                        <div class="font-bold text-base tracking-tight uppercase border-b border-black pb-1">
+                            धनखड़ सीएससी सेंटर ढाकला
+                        </div>
+                        <div class="text-[11px] leading-tight">
+                            संचालक: आशीष धनखड़<br>
+                            CSC ID: 316521760018<br>
+                            मो.: 9996036806
+                        </div>
+                        <div class="thermal-divider"></div>
+                        <div class="font-bold text-xs uppercase tracking-wider">
+                            *** TRANSACTION RECEIPT ***
+                        </div>
+                        <div class="thermal-divider"></div>
+                    </div>
+
+                    <!-- Receipt Key-Value Rows -->
+                    <div class="space-y-1 py-1 text-[11px]">
+                        <div class="flex justify-between">
+                            <span>Status:</span>
+                            <span id="rcpt-status" class="font-bold">SUCCESS</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Type:</span>
+                            <span id="rcpt-type" class="font-bold text-right">Cash Withdrawal</span>
+                        </div>
+                        <div class="flex justify-between font-bold text-sm border-y border-dashed border-black py-1 my-1">
+                            <span>AMOUNT:</span>
+                            <span id="rcpt-amount">₹5,000</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Date:</span>
+                            <span id="rcpt-date" class="text-right">26/10/2026 12:10 PM</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Bank:</span>
+                            <span id="rcpt-bank" class="text-right font-semibold">Punjab National Bank</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Customer ID:</span>
+                            <span id="rcpt-customer">XXXX XXXX 4569</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>RRN:</span>
+                            <span id="rcpt-rrn" class="font-mono">629912410935</span>
+                        </div>
+                        
+                        <div class="pt-1">
+                            <span class="block">Txn ID:</span>
+                            <span id="rcpt-txnid" class="font-mono break-all text-[10px] block leading-none">CZUCW1792996810289041EOVT3M89410935</span>
+                        </div>
+
+                        <div class="flex justify-between border-t border-dashed border-black pt-1 mt-1">
+                            <span>Remaining Bal:</span>
+                            <span id="rcpt-balance" class="font-bold">₹662.90</span>
+                        </div>
+                    </div>
+
+                    <!-- Operator Metadata -->
+                    <div class="thermal-divider"></div>
+                    <div class="text-[10px] space-y-0.5">
+                        <div class="flex justify-between">
+                            <span>Agent Name:</span>
+                            <span id="rcpt-agent">Aman / Ashish</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Terminal/Agent ID:</span>
+                            <span id="rcpt-agentid">316521760018</span>
+                        </div>
+                    </div>
+
+                    <!-- Footer Note -->
+                    <div class="thermal-divider"></div>
+                    <div class="text-center text-[10px] space-y-1 pt-1">
+                        <p class="font-bold">धन्यवाद! फिर पधारें।</p>
+                        <p class="text-[9px]">Dhankar CSC Center Dhakla - 9996036806</p>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- FOOTER (No Print) -->
+    <footer class="no-print bg-gray-900 text-gray-400 text-xs py-4 text-center mt-8 border-t border-gray-800">
+        <p>© 2026 धनखड़ सीएससी सेंटर ढाकला (Dhankar CSC Center Dhakla). All Rights Reserved.</p>
+        <p class="mt-1 text-gray-500">संचालक: आशीष धनखड़ | संपर्क: 9996036806</p>
+    </footer>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // Synchronize form values to 80mm Thermal Receipt Live Preview
+        function updateReceipt() {
+            document.getElementById('rcpt-type').innerText = document.getElementById('field-type').value || '-';
+            document.getElementById('rcpt-amount').innerText = document.getElementById('field-amount').value || '₹0';
+            document.getElementById('rcpt-status').innerText = document.getElementById('field-status').value || 'SUCCESS';
+            document.getElementById('rcpt-date').innerText = document.getElementById('field-date').value || '-';
+            document.getElementById('rcpt-bank').innerText = document.getElementById('field-bank').value || '-';
+            document.getElementById('rcpt-customer').innerText = document.getElementById('field-customer').value || '-';
+            document.getElementById('rcpt-rrn').innerText = document.getElementById('field-rrn').value || '-';
+            document.getElementById('rcpt-txnid').innerText = document.getElementById('field-txnid').value || '-';
+            document.getElementById('rcpt-balance').innerText = document.getElementById('field-balance').value || '-';
+            document.getElementById('rcpt-agent').innerText = document.getElementById('field-agent').value || 'Ashish Dhankar';
+            document.getElementById('rcpt-agentid').innerText = document.getElementById('field-agentid').value || '316521760018';
+        }
+
+        // Preset Sample Data Loader for Instant Testing
+        function loadSampleData() {
+            document.getElementById('field-type').value = "Cash Withdrawal (AEPS)";
+            document.getElementById('field-amount').value = "₹5,000";
+            document.getElementById('field-status').value = "SUCCESS";
+            document.getElementById('field-date').value = "October 26, 2026 12:10:12 PM";
+            document.getElementById('field-bank').value = "Punjab National Bank";
+            document.getElementById('field-customer').value = "XXXX XXXX 4569";
+            document.getElementById('field-rrn').value = "629912410935";
+            document.getElementById('field-balance').value = "₹662.90";
+            document.getElementById('field-txnid').value = "CZUCW1792996810289041EOVT3M89410935";
+            document.getElementById('field-agent').value = "Aman Kumar / आशीष";
+            document.getElementById('field-agentid').value = "316521760018";
+
+            updateReceipt();
+
+            const statusMsg = document.getElementById('status-msg');
+            statusMsg.innerHTML = '<span class="text-emerald-600 font-bold"><i class="fa-solid fa-circle-check"></i> डिजिपे सैंपल डेटा सफलतापूर्वक लोड हो गया!</span>';
+        }
+
+        // Clear Form Data
+        function clearForm() {
+            document.getElementById('field-type').value = "";
+            document.getElementById('field-amount').value = "";
+            document.getElementById('field-status').value = "SUCCESS";
+            document.getElementById('field-date').value = "";
+            document.getElementById('field-bank').value = "";
+            document.getElementById('field-customer').value = "";
+            document.getElementById('field-rrn').value = "";
+            document.getElementById('field-balance').value = "";
+            document.getElementById('field-txnid').value = "";
+            document.getElementById('field-agent').value = "";
+            document.getElementById('field-agentid').value = "";
+
+            updateReceipt();
+
+            document.getElementById('status-msg').innerHTML = '<span class="text-gray-500"><i class="fa-solid fa-circle-info"></i> फार्म साफ़ कर दिया गया है।</span>';
+        }
+
+        // Handle PDF File Upload & Parsing using PDF.js
+        async function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (file.type !== 'application/pdf') {
+                alert('कृपया केवल PDF फ़ाइल अपलोड करें।');
+                return;
+            }
+
+            const statusMsg = document.getElementById('status-msg');
+            statusMsg.innerHTML = '<span class="text-indigo-600 font-bold"><i class="fa-solid fa-spinner fa-spin"></i> PDF से डेटा निकाला जा रहा है...</span>';
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                
+                let extractedText = '';
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const textContent = await page.getTextContent();
+                    const pageText = textContent.items.map(item => item.str).join(' ');
+                    extractedText += pageText + ' ';
+                }
+
+                parseReceiptText(extractedText);
+
+                statusMsg.innerHTML = '<span class="text-emerald-600 font-bold"><i class="fa-solid fa-circle-check"></i> PDF का विवरण सफलतापूर्वक ऑटो-फैच हुआ!</span>';
+
+            } catch (error) {
+                console.error('Error parsing PDF:', error);
+                statusMsg.innerHTML = '<span class="text-red-600 font-bold"><i class="fa-solid fa-triangle-exclamation"></i> PDF पढ़ने में त्रुटि हुई। कृपया सैंपल डेटा का उपयोग करें।</span>';
+            }
+        }
+
+        // Text Regex Parser for Digipay & CSC Receipts
+        function parseReceiptText(text) {
+            const amountMatch = text.match(/Amount\s*:\s*₹?\s*([0-9,.]+)/i) || text.match(/₹\s*([0-9,.]+)/);
+            if (amountMatch) {
+                document.getElementById('field-amount').value = '₹' + amountMatch[1].trim();
+            }
+
+            const txnMatch = text.match(/Transaction\s*ID\s*:\s*([A-Z0-9]+)/i) || text.match(/Txn\s*ID\s*:\s*([A-Z0-9]+)/i);
+            if (txnMatch) {
+                document.getElementById('field-txnid').value = txnMatch[1].trim();
+            }
+
+            const rrnMatch = text.match(/RRN\s*:\s*([0-9]+)/i) || text.match(/Bank\s*Ref\.?\s*No\.?\s*:\s*([0-9]+)/i);
+            if (rrnMatch) {
+                document.getElementById('field-rrn').value = rrnMatch[1].trim();
+            }
+
+            const balMatch = text.match(/Balance\s*:\s*₹?\s*([0-9,.]+)/i);
+            if (balMatch) {
+                document.getElementById('field-balance').value = '₹' + balMatch[1].trim();
+            }
+
+            const dateMatch = text.match(/Date\s*:\s*([A-Za-z0-9,:\s]+(?:AM|PM)?)/i);
+            if (dateMatch) {
+                document.getElementById('field-date').value = dateMatch[1].trim();
+            }
+
+            const custMatch = text.match(/Customer\s*ID\s*:\s*([X0-9\s]+)/i);
+            if (custMatch) {
+                document.getElementById('field-customer').value = custMatch[1].trim();
+            }
+
+            const bankMatch = text.match(/Bank\s*Name\s*:\s*([A-Za-z\s]+)/i);
+            if (bankMatch) {
+                document.getElementById('field-bank').value = bankMatch[1].trim();
+            }
+
+            const agentMatch = text.match(/Agent\s*Name\s*:\s*([A-Za-z\s]+)/i);
+            if (agentMatch) {
+                document.getElementById('field-agent').value = agentMatch[1].trim();
+            }
+
+            updateReceipt();
+        }
+
+        // Copy Plain Text Version of Thermal Receipt
+        function copyReceiptText() {
+            const receiptText = `
+--------------------------------
+  धनखड़ सीएससी सेंटर ढाकला
+  संचालक: आशीष धनखड़
+  CSC ID: 316521760018
+  मो.: 9996036806
+--------------------------------
+*** TRANSACTION RECEIPT ***
+--------------------------------
+Status: ${document.getElementById('field-status').value}
+Type: ${document.getElementById('field-type').value}
+AMOUNT: ${document.getElementById('field-amount').value}
+Date: ${document.getElementById('field-date').value}
+Bank: ${document.getElementById('field-bank').value}
+Customer ID: ${document.getElementById('field-customer').value}
+RRN: ${document.getElementById('field-rrn').value}
+Txn ID: ${document.getElementById('field-txnid').value}
+Remaining Bal: ${document.getElementById('field-balance').value}
+--------------------------------
+Agent: ${document.getElementById('field-agent').value}
+Agent ID: ${document.getElementById('field-agentid').value}
+--------------------------------
+  धन्यवाद! फिर पधारें।
+--------------------------------`.trim();
+
+            navigator.clipboard.writeText(receiptText).then(() => {
+                alert('रसीद टेक्स्ट क्लिपबोर्ड पर कॉपी हो गया!');
+            }).catch(err => {
+                console.error('Copy failed:', err);
+            });
+        }
+
+        window.onload = function() {
+            updateReceipt();
+        };
+    </script>
+</body>
+</html>
